@@ -13,7 +13,8 @@
 #include "portaudio.h"  // NOLINT
 #include "sherpa-onnx/csrc/display.h"
 #include "sherpa-onnx/csrc/microphone.h"
-#include "sherpa-onnx/csrc/online-recognizer.h"
+// #include "sherpa-onnx/csrc/online-recognizer.h"
+#include "sherpa-onnx/c-api/c-api.h"
 
 bool stop = false;
 float mic_sample_rate = 16000;
@@ -24,11 +25,13 @@ static int32_t RecordCallback(const void *input_buffer,
                               const PaStreamCallbackTimeInfo * /*time_info*/,
                               PaStreamCallbackFlags /*status_flags*/,
                               void *user_data) {
-  auto stream = reinterpret_cast<sherpa_onnx::OnlineStream *>(user_data);
+  // auto stream = reinterpret_cast<sherpa_onnx::OnlineStream *>(user_data);
+  auto stream = reinterpret_cast<SherpaOnnxOnlineStream *>(user_data);
 
-  stream->AcceptWaveform(mic_sample_rate,
-                         reinterpret_cast<const float *>(input_buffer),
-                         frames_per_buffer);
+  // stream->AcceptWaveform(mic_sample_rate,
+  //                        reinterpret_cast<const float *>(input_buffer),
+  //                        frames_per_buffer);
+  AcceptWaveform(stream, mic_sample_rate, reinterpret_cast<const float *>(input_buffer), frames_per_buffer);
 
   return stop ? paComplete : paContinue;
 }
@@ -84,27 +87,59 @@ https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
 for a list of pre-trained models to download.
 )usage";
 
-  sherpa_onnx::ParseOptions po(kUsageMessage);
-  sherpa_onnx::OnlineRecognizerConfig config;
+  // sherpa_onnx::ParseOptions po(kUsageMessage);
+  // sherpa_onnx::OnlineRecognizerConfig config;
 
-  config.Register(&po);
-  po.Read(argc, argv);
-  if (po.NumArgs() != 0) {
-    po.PrintUsage();
-    exit(EXIT_FAILURE);
-  }
+  // config.Register(&po);
+  // po.Read(argc, argv);
+  // if (po.NumArgs() != 0) {
+  //   po.PrintUsage();
+  //   exit(EXIT_FAILURE);
+  // }
 
-  fprintf(stderr, "%s\n", config.ToString().c_str());
+  // fprintf(stderr, "%s\n", config.ToString().c_str());
 
-  if (!config.Validate()) {
-    fprintf(stderr, "Errors in config!\n");
-    return -1;
-  }
+  // if (!config.Validate()) {
+  //   fprintf(stderr, "Errors in config!\n");
+  //   return -1;
+  // }
 
-  sherpa_onnx::OnlineRecognizer recognizer(config);
-  auto s = recognizer.CreateStream();
+  // sherpa_onnx::OnlineRecognizer recognizer(config);
+  // auto s = recognizer.CreateStream();
+
+  SherpaOnnxOnlineRecognizerConfig config;
+
+  config.model_config.debug = 0;
+  config.model_config.num_threads = 2;
+  config.model_config.provider = "cpu";
+
+  config.decoding_method = "greedy_search"; // greedy_search | modified_beam_search
+  // config.max_active_paths = 4;
+  // config.hotwords_score = 2;
+
+  config.feat_config.sample_rate = 16000;
+  config.feat_config.feature_dim = 80;
+
+  config.enable_endpoint = 1;
+  config.rule1_min_trailing_silence = 2.4f;
+  config.rule2_min_trailing_silence = 1.2f;
+  config.rule3_min_utterance_length = 20;
+
+  config.model_config.tokens = argv[1];
+  config.model_config.transducer.encoder = argv[2];
+  config.model_config.transducer.decoder = argv[3];
+  config.model_config.transducer.joiner = argv[4];
+  config.model_config.model_type = "";
+  config.hotwords_file = (argc == 6 ? argv[5] : "");
+  // config.hotwords_file = "";
+  bool use_voicea = (std::string(argv[1]).find("voicea") != std::string::npos);
 
   sherpa_onnx::Microphone mic;
+
+  SherpaOnnxOnlineRecognizer *recognizer = CreateOnlineRecognizer(&config);
+  fprintf(stderr, "mydebug, after create online recognizer\n");
+  SherpaOnnxOnlineStream *onlineStream = CreateOnlineStream(recognizer);
+  fprintf(stderr, "mydebug, after create online stream\n");
 
   PaDeviceIndex num_devices = Pa_GetDeviceCount();
   fprintf(stderr, "Num devices: %d\n", num_devices);
@@ -158,7 +193,8 @@ for a list of pre-trained models to download.
                     0,          // frames per buffer
                     paClipOff,  // we won't output out of range samples
                                 // so don't bother clipping them
-                    RecordCallback, s.get());
+                    // RecordCallback, s.get());
+                    RecordCallback, onlineStream);
   if (err != paNoError) {
     fprintf(stderr, "portaudio error: %s\n", Pa_GetErrorText(err));
     exit(EXIT_FAILURE);
@@ -176,29 +212,42 @@ for a list of pre-trained models to download.
   int32_t segment_index = 0;
   sherpa_onnx::Display display(30);
   while (!stop) {
-    while (recognizer.IsReady(s.get())) {
-      recognizer.DecodeStream(s.get());
+    // while (recognizer.IsReady(s.get())) {
+    //   recognizer.DecodeStream(s.get());
+    // }
+    while (IsOnlineStreamReady(recognizer, onlineStream)) {
+      DecodeOnlineStream(recognizer, onlineStream);
     }
 
-    auto text = recognizer.GetResult(s.get()).text;
-    bool is_endpoint = recognizer.IsEndpoint(s.get());
+    // auto text = recognizer.GetResult(s.get()).text;
+    const SherpaOnnxOnlineRecognizerResult *r = GetOnlineStreamResult(recognizer, onlineStream);
+    std::string text(r->text);
+    // bool is_endpoint = recognizer.IsEndpoint(s.get());
+    bool is_endpoint = IsEndpoint(recognizer, onlineStream);
 
-    if (is_endpoint && !config.model_config.paraformer.encoder.empty()) {
-      // For streaming paraformer models, since it has a large right chunk size
-      // we need to pad it on endpointing so that the last character
-      // can be recognized
-      std::vector<float> tail_paddings(static_cast<int>(1.0 * mic_sample_rate));
-      s->AcceptWaveform(mic_sample_rate, tail_paddings.data(),
-                        tail_paddings.size());
-      while (recognizer.IsReady(s.get())) {
-        recognizer.DecodeStream(s.get());
-      }
-      text = recognizer.GetResult(s.get()).text;
-    }
+    // if (is_endpoint && !config.model_config.paraformer.encoder.empty()) {
+    //   // For streaming paraformer models, since it has a large right chunk size
+    //   // we need to pad it on endpointing so that the last character
+    //   // can be recognized
+    //   std::vector<float> tail_paddings(static_cast<int>(1.0 * mic_sample_rate));
+    //   s->AcceptWaveform(mic_sample_rate, tail_paddings.data(),
+    //                     tail_paddings.size());
+    //   while (recognizer.IsReady(s.get())) {
+    //     recognizer.DecodeStream(s.get());
+    //   }
+    //   text = recognizer.GetResult(s.get()).text;
+    // }
 
     if (!text.empty() && last_text != text) {
       last_text = text;
-      display.Print(segment_index, tolowerUnicode(text));
+      // display.Print(segment_index, tolowerUnicode(text));
+      if (!use_voicea)
+      {
+        std::transform(text.begin(), text.end(), text.begin(),
+                       [](auto c) { return std::tolower(c); });
+      }
+
+      fprintf(stderr, "\r%d: %s", segment_index, text.c_str());
       fflush(stderr);
     }
 
@@ -207,8 +256,11 @@ for a list of pre-trained models to download.
         ++segment_index;
       }
 
-      recognizer.Reset(s.get());
+      // recognizer.Reset(s.get());
+      Reset(recognizer, onlineStream);
     }
+
+    DestroyOnlineRecognizerResult(r);
 
     Pa_Sleep(20);  // sleep for 20ms
   }
@@ -218,6 +270,11 @@ for a list of pre-trained models to download.
     fprintf(stderr, "portaudio error: %s\n", Pa_GetErrorText(err));
     exit(EXIT_FAILURE);
   }
+
+  InputFinished(onlineStream);
+
+  DestroyOnlineStream(onlineStream);
+  DestroyOnlineRecognizer(recognizer);
 
   return 0;
 }

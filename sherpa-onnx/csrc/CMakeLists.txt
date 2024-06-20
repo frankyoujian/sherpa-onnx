@@ -405,7 +405,7 @@ if(SHERPA_ONNX_ENABLE_PORTAUDIO AND SHERPA_ONNX_ENABLE_BINARY)
   endif()
 
   foreach(exe IN LISTS exes)
-    target_link_libraries(${exe} ${PA_LIB} sherpa-onnx-core)
+    target_link_libraries(${exe} ${PA_LIB} sherpa-onnx-core sherpa-onnx-c-api)
   endforeach()
 
   if(NOT WIN32)

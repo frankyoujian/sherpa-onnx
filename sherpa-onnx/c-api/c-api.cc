@@ -61,13 +61,13 @@ SherpaOnnxOnlineRecognizer *CreateOnlineRecognizer(
   recognizer_config.model_config.transducer.joiner =
       SHERPA_ONNX_OR(config->model_config.transducer.joiner, "");
 
-  recognizer_config.model_config.paraformer.encoder =
-      SHERPA_ONNX_OR(config->model_config.paraformer.encoder, "");
-  recognizer_config.model_config.paraformer.decoder =
-      SHERPA_ONNX_OR(config->model_config.paraformer.decoder, "");
+  // recognizer_config.model_config.paraformer.encoder =
+  //     SHERPA_ONNX_OR(config->model_config.paraformer.encoder, "");
+  // recognizer_config.model_config.paraformer.decoder =
+  //     SHERPA_ONNX_OR(config->model_config.paraformer.decoder, "");
 
-  recognizer_config.model_config.zipformer2_ctc.model =
-      SHERPA_ONNX_OR(config->model_config.zipformer2_ctc.model, "");
+  // recognizer_config.model_config.zipformer2_ctc.model =
+  //     SHERPA_ONNX_OR(config->model_config.zipformer2_ctc.model, "");
 
   recognizer_config.model_config.tokens =
       SHERPA_ONNX_OR(config->model_config.tokens, "");
@@ -79,10 +79,10 @@ SherpaOnnxOnlineRecognizer *CreateOnlineRecognizer(
       SHERPA_ONNX_OR(config->model_config.model_type, "");
   recognizer_config.model_config.debug =
       SHERPA_ONNX_OR(config->model_config.debug, 0);
-  recognizer_config.model_config.modeling_unit =
-      SHERPA_ONNX_OR(config->model_config.modeling_unit, "cjkchar");
-  recognizer_config.model_config.bpe_vocab =
-      SHERPA_ONNX_OR(config->model_config.bpe_vocab, "");
+  // recognizer_config.model_config.modeling_unit =
+  //     SHERPA_ONNX_OR(config->model_config.modeling_unit, "cjkchar");
+  // recognizer_config.model_config.bpe_vocab =
+  //     SHERPA_ONNX_OR(config->model_config.bpe_vocab, "");
 
   recognizer_config.decoding_method =
       SHERPA_ONNX_OR(config->decoding_method, "greedy_search");
@@ -105,13 +105,13 @@ SherpaOnnxOnlineRecognizer *CreateOnlineRecognizer(
   recognizer_config.hotwords_score =
       SHERPA_ONNX_OR(config->hotwords_score, 1.5);
 
-  recognizer_config.ctc_fst_decoder_config.graph =
-      SHERPA_ONNX_OR(config->ctc_fst_decoder_config.graph, "");
+  // recognizer_config.ctc_fst_decoder_config.graph =
+  //     SHERPA_ONNX_OR(config->ctc_fst_decoder_config.graph, "");
   recognizer_config.ctc_fst_decoder_config.max_active =
       SHERPA_ONNX_OR(config->ctc_fst_decoder_config.max_active, 3000);
 
-  recognizer_config.rule_fsts = SHERPA_ONNX_OR(config->rule_fsts, "");
-  recognizer_config.rule_fars = SHERPA_ONNX_OR(config->rule_fars, "");
+  // recognizer_config.rule_fsts = SHERPA_ONNX_OR(config->rule_fsts, "");
+  // recognizer_config.rule_fars = SHERPA_ONNX_OR(config->rule_fars, "");
 
   if (config->model_config.debug) {
     SHERPA_ONNX_LOGE("%s\n", recognizer_config.ToString().c_str());
