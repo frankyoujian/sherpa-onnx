@@ -222,13 +222,13 @@ const SherpaOnnxOnlineRecognizerResult *GetOnlineStreamResult(
     }
     r->tokens_arr = tokens_temp;
 
-    if (!result.timestamps.empty()) {
-      r->timestamps = new float[r->count];
-      std::copy(result.timestamps.begin(), result.timestamps.end(),
-                r->timestamps);
-    } else {
-      r->timestamps = nullptr;
-    }
+    // if (!result.timestamps.empty()) {
+    //   r->timestamps = new float[r->count];
+    //   std::copy(result.timestamps.begin(), result.timestamps.end(),
+    //             r->timestamps);
+    // } else {
+    //   r->timestamps = nullptr;
+    // }
 
     r->tokens = tokens;
   } else {
@@ -247,7 +247,7 @@ void DestroyOnlineRecognizerResult(const SherpaOnnxOnlineRecognizerResult *r) {
     delete[] r->json;
     delete[] r->tokens;
     delete[] r->tokens_arr;
-    delete[] r->timestamps;
+    // delete[] r->timestamps;
     delete r;
   }
 }

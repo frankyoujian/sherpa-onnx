@@ -247,7 +247,7 @@ for a list of pre-trained models to download.
                        [](auto c) { return std::tolower(c); });
       }
 
-      fprintf(stderr, "\r%d: %s", segment_index, text.c_str());
+      fprintf(stderr, "\r%d: %s\n", segment_index, text.c_str());
       fflush(stderr);
     }
 

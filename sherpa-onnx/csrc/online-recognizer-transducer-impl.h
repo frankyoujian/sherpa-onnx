@@ -43,21 +43,75 @@ OnlineRecognizerResult Convert(const OnlineTransducerDecoderResult &src,
   r.tokens.reserve(src.tokens.size());
   r.timestamps.reserve(src.tokens.size());
 
-  for (auto i : src.tokens) {
-    auto sym = sym_table[i];
+  // for (auto i : src.tokens) {
+  //   auto sym = sym_table[i];
 
-    r.text.append(sym);
+  //   r.text.append(sym);
 
-    if (sym.size() == 1 && (sym[0] < 0x20 || sym[0] > 0x7e)) {
-      // for byte bpe models
-      // (but don't rewrite printable characters 0x20..0x7e,
-      //  which collide with standard BPE units)
-      std::ostringstream os;
-      os << "<0x" << std::hex << std::uppercase
-         << (static_cast<int32_t>(sym[0]) & 0xff) << ">";
-      sym = os.str();
+  //   if (sym.size() == 1 && (sym[0] < 0x20 || sym[0] > 0x7e)) {
+  //     // for byte bpe models
+  //     // (but don't rewrite printable characters 0x20..0x7e,
+  //     //  which collide with standard BPE units)
+  //     std::ostringstream os;
+  //     os << "<0x" << std::hex << std::uppercase
+  //        << (static_cast<int32_t>(sym[0]) & 0xff) << ">";
+  //     sym = os.str();
+  //   }
+
+  //   r.tokens.push_back(std::move(sym));
+  // }
+
+  int tokens_size = src.tokens.size();
+  for (int indx=0; indx < tokens_size; indx++) {
+    int next_indx = indx + 1;
+    auto sym = sym_table[src.tokens[indx]];
+ 
+    if (sym == " " && next_indx < tokens_size && src.tokens[next_indx] >= 2 && src.tokens[next_indx] <= 8)
+    {
+      continue;
+    }
+ 
+    if (src.tokens[indx] >= 6 && src.tokens[indx] <= 8)
+    {
+      auto sp_pos = r.text.rfind(" ");
+      auto upper_pos = (sp_pos == std::string::npos ? 0 : (sp_pos+1));
+
+      switch (src.tokens[indx])
+      {
+        // cap
+        case 6:
+        {
+          // fprintf(stderr, "\n-----------> <cap>");
+          r.text[upper_pos] = toupper(r.text[upper_pos]);
+          // fprintf(stderr, "\n r.text: %s", r.text.c_str());
+        } break;
+        // upp
+        case 7:
+        {
+          for (auto it = r.text.begin() + upper_pos; it < r.text.end(); ++it)
+          {
+            *it = toupper(*it);
+          }
+        } break;
+        // mix
+        case 8:
+        {
+
+        } break;
+        default:
+          break;
+      }
+
+      continue;
     }
 
+    if (src.tokens[indx] >= 2 && src.tokens[indx] <= 5)
+    {
+      int token_len = sym.size();
+      sym = sym.substr(1, token_len - 2);
+    }
+
+    r.text.append(sym);
     r.tokens.push_back(std::move(sym));
   }
 
