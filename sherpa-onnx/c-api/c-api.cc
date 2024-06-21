@@ -84,8 +84,8 @@ SherpaOnnxOnlineRecognizer *CreateOnlineRecognizer(
   // recognizer_config.model_config.bpe_vocab =
   //     SHERPA_ONNX_OR(config->model_config.bpe_vocab, "");
 
-  recognizer_config.decoding_method =
-      SHERPA_ONNX_OR(config->decoding_method, "greedy_search");
+  // recognizer_config.decoding_method =
+  //     SHERPA_ONNX_OR(config->decoding_method, "greedy_search");
   recognizer_config.max_active_paths =
       SHERPA_ONNX_OR(config->max_active_paths, 4);
 
@@ -101,7 +101,7 @@ SherpaOnnxOnlineRecognizer *CreateOnlineRecognizer(
   recognizer_config.endpoint_config.rule3.min_utterance_length =
       SHERPA_ONNX_OR(config->rule3_min_utterance_length, 20);
 
-  recognizer_config.hotwords_file = SHERPA_ONNX_OR(config->hotwords_file, "");
+  // recognizer_config.hotwords_file = SHERPA_ONNX_OR(config->hotwords_file, "");
   recognizer_config.hotwords_score =
       SHERPA_ONNX_OR(config->hotwords_score, 1.5);
 
